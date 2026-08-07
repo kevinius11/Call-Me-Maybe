@@ -1,4 +1,4 @@
-from .schemasclasses import (
+from .models import (
     ParameterDefinition,
     FunctionCallResult,
     FunctionDefinition,
