@@ -5,4 +5,4 @@ from .models import (
 )
 
 
-__all__ = ['ParameterDefinition', 'FunctionDefinition', 'FunctionCallResult']
+__all__ = ["ParameterDefinition", "FunctionDefinition", "FunctionCallResult"]

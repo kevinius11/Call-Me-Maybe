@@ -1,4 +1,4 @@
-from llm_sdk.llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model
 import numpy as np
 
 
@@ -62,5 +62,21 @@ class LLM:
 
     def get_logits(self, input_ids: list[int]) -> np.ndarray:
         """
-        
+        Obtiene los logits del ultimo token de la secuencia.
+
+        Args:
+            input_ids: Lista de IDs de tokens que representa la entrada.
+
+        Returns:
+            Array de NumPy con un logit por cada token del vocabulario.
+
+        Raises:
+            LLMError: Si ocurre un error durante la inferencia del modelo.
         """
+        try:
+            logits = self._model.get_logits_from_input_ids(input_ids)
+
+            return np.array(logits)
+
+        except Exception as e:
+            raise LLMError(f"Error al obtener los logits: {e}") from e
