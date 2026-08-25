@@ -196,7 +196,8 @@ class Decoder:
 
                 if parameter_type == "boolean":
                     raise DecoderError(
-                        "La actualización de valores booleanos aún no está implementada"
+                        "La actualización de valores booleanos "
+                        "aún no está implementada"
                     )
 
                 raise DecoderError(
@@ -239,7 +240,7 @@ class Decoder:
             )
 
             return continues_name or closes_name
-        
+
         # 2. EXPECT_ARGS_KEY
         if state.phase == DecodingState.EXPECT_ARGS_KEY:
             if state.selected_function is None:
@@ -304,9 +305,14 @@ class Decoder:
             parameter_type = parameter.type
 
             if parameter_type == "number":
+                parameter_names = list(function.parameters.keys())
+                current_index = parameter_names.index(state.current_parameter)
+                has_more_parameters = current_index < len(parameter_names) - 1
+
                 return self._number_token_is_valid(
                     token_string,
-                    state.prefix
+                    state.prefix,
+                    has_more_parameters
                 )
 
             if parameter_type == "string":
@@ -330,6 +336,7 @@ class Decoder:
         self,
         token_string: str,
         prefix: str,
+        has_more_parameters: bool,
     ) -> bool:
         """
         Determina si un token puede continuar la construcción de un número.
@@ -351,7 +358,10 @@ class Decoder:
         if prefix.endswith("."):
             return token_string.isdigit()
 
-        if token_string in {",", "}"}:
+        if token_string == "," and has_more_parameters:
+            return True
+
+        if token_string == "}" and not has_more_parameters:
             return True
 
         if token_string.isdigit():
