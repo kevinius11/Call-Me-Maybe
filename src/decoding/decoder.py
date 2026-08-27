@@ -91,7 +91,7 @@ class Decoder:
                 update={
                     "selected_function": state.prefix,
                     "prefix": "",
-                    "phase": DecodingState.EXPECT_SEPARATOR,
+                    "phase": DecodingState.EXPECT_ARGS_KEY,
                 }
             )
 
@@ -105,7 +105,7 @@ class Decoder:
                 update={
                     "current_parameter": state.prefix,
                     "prefix": "",
-                    "phase": DecodingState.EXPECT_SEPARATOR,
+                    "phase": DecodingState.EXPECT_ARGS_VALUE,
                 }
             )
 

@@ -10,7 +10,6 @@ class DecodingState(Enum):
     EXPECT_FN_NAME = "expect_fn_name"
     EXPECT_ARGS_KEY = "expect_args_key"
     EXPECT_ARGS_VALUE = "expect_args_value"
-    EXPECT_SEPARATOR = "expect_separator"
     DONE = "done"
 
 
