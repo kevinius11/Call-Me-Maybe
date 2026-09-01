@@ -305,6 +305,22 @@ class Decoder:
             parameter_type = parameter.type
 
             if parameter_type == "number":
+
+                if token_string in {",", "}"}:
+                    if not self.can_finish_value(state):
+                        return False
+
+                    has_more_parameters = self._has_more_parameters(
+                        function,
+                        state.current_parameter
+                    )
+
+                    if token_string == ",":
+                        return has_more_parameters
+
+                    if token_string == "}":
+                        return not has_more_parameters
+
                 parameter_names = list(function.parameters.keys())
                 current_index = parameter_names.index(state.current_parameter)
                 has_more_parameters = current_index < len(parameter_names) - 1
@@ -312,7 +328,6 @@ class Decoder:
                 return self._number_token_is_valid(
                     token_string,
                     state.prefix,
-                    has_more_parameters
                 )
 
             if parameter_type == "string":
@@ -336,7 +351,6 @@ class Decoder:
         self,
         token_string: str,
         prefix: str,
-        has_more_parameters: bool,
     ) -> bool:
         """
         Determina si un token puede continuar la construcción de un número.
@@ -357,12 +371,6 @@ class Decoder:
 
         if prefix.endswith("."):
             return token_string.isdigit()
-
-        if token_string == "," and has_more_parameters:
-            return True
-
-        if token_string == "}" and not has_more_parameters:
-            return True
 
         if token_string.isdigit():
             return True
@@ -387,3 +395,83 @@ class Decoder:
             False si el token cierra el string.
         """
         return token_string != '"'
+
+    def can_finish_value(
+            self,
+            state: DecoderState,
+    ) -> bool:
+        """
+        Determina si el valor actual puede darse por terminado.
+
+        Args:
+            state: Estado actual de la máquina de decodificación.
+
+        Returns:
+            True si el valor actual puede terminarse.
+            False si todavía debe continuar la generación.
+
+        Raises:
+            DecoderError: Si el estado no corresponde a EXPECT_ARGS_VALUE,
+                si no existe la función seleccionada o si el parámetro actual
+                no existe.
+        """
+
+        if state.phase != DecodingState.EXPECT_ARGS_VALUE:
+            raise DecoderError(
+                "can_finish_value() solo puede usarse "
+                "en EXPECT_ARGS_VALUE."
+            )
+
+        function = self._functions_by_name.get(
+            state.selected_function
+        )
+
+        if function is None:
+            raise DecoderError(f"Funcion no encontrada: {state.selected_function}")
+
+        parameter = function.parameters.get(
+            state.current_parameter
+        )
+
+        if parameter is None:
+            raise DecoderError(f"Parametro no encontrado: {state.current_parameter}")
+
+        parameter_type = parameter.type
+
+        if parameter_type == "number":
+            if state.prefix == "":
+                return False
+
+            if state.prefix == "-":
+                return False
+
+            if state.prefix.endswith("."):
+                return False
+
+            return True
+
+        if parameter_type == "string":
+            return False
+
+        if parameter_type == "boolean":
+            raise DecoderError(
+                "no implemented"
+            )
+
+        raise DecoderError(
+            f"Tipo de parametro no soportado: {parameter_type}"
+        )
+
+    def _has_more_parameters(
+            self,
+            function: FunctionDefinition,
+            current_parameter: str,
+    ) -> bool:
+        """"""
+        parameter_names = list(function.parameters.keys())
+
+        current_index = parameter_names.index(
+            current_parameter
+        )
+
+        return current_index < len(parameter_names) - 1

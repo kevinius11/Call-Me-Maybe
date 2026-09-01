@@ -4,6 +4,11 @@ from src.schemas import FunctionDefinition
 from src.prompt_builder import build_prompt
 
 
+class GenerationError(Exception):
+    """Representa un error durante la generación."""
+    pass
+
+
 class Generator:
     """Orquesta la generacion restringida del JSON."""
     def __init__(self,
