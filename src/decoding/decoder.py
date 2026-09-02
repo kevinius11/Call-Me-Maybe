@@ -141,25 +141,7 @@ class Decoder:
             parameter_type = parameter.type
 
             if parameter_type == "number":
-                if token_string not in {",", "}"}:
-                    return state.model_copy(
-                        update={"prefix": state.prefix + token_string}
-                    )
-
-                parameter_names = list(function.parameters.keys())
-                current_index = parameter_names.index(
-                    state.current_parameter
-                )
-                has_more_parameters = (
-                    current_index < len(parameter_names) - 1
-                )
-
                 if token_string == ",":
-                    if not has_more_parameters:
-                        raise DecoderError(
-                            "Separador ',' sin parámetros restantes"
-                        )
-
                     return state.model_copy(
                         update={
                             "prefix": "",
@@ -168,12 +150,6 @@ class Decoder:
                     )
 
                 if token_string == "}":
-                    if has_more_parameters:
-                        raise DecoderError(
-                            "Cierre de argumentos antes de completar "
-                            "todos los parámetros"
-                        )
-
                     return state.model_copy(
                         update={
                             "prefix": "",
@@ -181,32 +157,49 @@ class Decoder:
                         }
                     )
 
-                if parameter_type == "string":
-                    if token_string != '"':
-                        return state.model_copy(
-                            update={"prefix": state.prefix + token_string}
-                        )
+                return state.model_copy(
+                    update={
+                        "prefix": state.prefix + token_string
+                    }
+                )
 
+            if parameter_type == "string":
+                if token_string != '"':
                     return state.model_copy(
                         update={
-                            "prefix": "",
-                            "phase": DecodingState.EXPECT_SEPARATOR,
+                            "prefix": state.prefix + token_string
                         }
                     )
 
-                if parameter_type == "boolean":
-                    raise DecoderError(
-                        "La actualización de valores booleanos "
-                        "aún no está implementada"
-                    )
-
-                raise DecoderError(
-                    f"Tipo de parámetro no soportado: {parameter_type}"
+                has_more_parameters = self._has_more_parameters(
+                    function,
+                    state.current_parameter,
                 )
 
-        raise DecoderError(
-            f"Estado no soportado: {state.phase}"
-        )
+                if has_more_parameters:
+                    return state.model_copy(
+                        update={
+                            "prefix": "",
+                            "phase": DecodingState.EXPECT_ARGS_KEY,
+                        }
+                    )
+
+                return state.model_copy(
+                    update={
+                        "prefix": "",
+                        "phase": DecodingState.DONE,
+                    }
+                )
+
+            if parameter_type == "boolean":
+                raise DecoderError(
+                    "La actualización de valores booleanos "
+                    "aún no está implementada"
+                )
+
+            raise DecoderError(
+                f"Tipo de parámetro no soportado: {parameter_type}"
+            )
 
     def _token_is_valid(
         self,
@@ -321,10 +314,6 @@ class Decoder:
                     if token_string == "}":
                         return not has_more_parameters
 
-                parameter_names = list(function.parameters.keys())
-                current_index = parameter_names.index(state.current_parameter)
-                has_more_parameters = current_index < len(parameter_names) - 1
-
                 return self._number_token_is_valid(
                     token_string,
                     state.prefix,
@@ -360,8 +349,8 @@ class Decoder:
             prefix: Parte del número generada hasta el momento.
 
         Returns:
-            True si el token es válido para continuar o cerrar el número;
-            False en caso contrario.
+            True si el token puede continuar la construcción del número.
+            False si el token no es valido.
         """
         if prefix == "":
             return token_string.isdigit() or token_string == "-"
@@ -427,14 +416,18 @@ class Decoder:
         )
 
         if function is None:
-            raise DecoderError(f"Funcion no encontrada: {state.selected_function}")
+            raise DecoderError(
+                f"Funcion no encontrada: {state.selected_function}"
+            )
 
         parameter = function.parameters.get(
             state.current_parameter
         )
 
         if parameter is None:
-            raise DecoderError(f"Parametro no encontrado: {state.current_parameter}")
+            raise DecoderError(
+                f"Parametro no encontrado: {state.current_parameter}"
+            )
 
         parameter_type = parameter.type
 
@@ -463,12 +456,31 @@ class Decoder:
         )
 
     def _has_more_parameters(
-            self,
-            function: FunctionDefinition,
-            current_parameter: str,
+        self,
+        function: FunctionDefinition,
+        current_parameter: str,
     ) -> bool:
-        """"""
+        """
+        Determina si existen parámetros después del parámetro actual.
+
+        Args:
+            function: Definición de la función cuyos parámetros se están
+                evaluando.
+            current_parameter: Nombre del parámetro que se está procesando.
+
+        Returns:
+            True si existen parámetros posteriores al parámetro actual.
+            False si el parámetro actual es el último.
+
+        Raises:
+            DecoderError: Si el parámetro actual no existe en la función.
+        """
         parameter_names = list(function.parameters.keys())
+
+        if current_parameter not in parameter_names:
+            raise DecoderError(
+                f"Parámetro no encontrado: {current_parameter}"
+            )
 
         current_index = parameter_names.index(
             current_parameter
