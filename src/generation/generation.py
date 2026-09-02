@@ -1,4 +1,4 @@
-from src.llm import LLM
+from src.llm import LLM, Vocabulary
 from src.decoding import Decoder, DecoderState, DecodingState
 from src.schemas import FunctionDefinition
 from src.prompt_builder import build_prompt
@@ -16,7 +16,8 @@ class Generator:
     def __init__(self,
                  llm: LLM,
                  decoder: Decoder,
-                 functions: list[FunctionDefinition]
+                 functions: list[FunctionDefinition],
+                 vocabulary: Vocabulary,
                  ) -> None:
         """
         Inicializa el generador.
@@ -25,10 +26,15 @@ class Generator:
             llm: Modelo utilizado para generar tokens.
             decoder: Decoder encargado de restringir la generación.
             functions: Funciones disponibles para el modelo.
+            vocabulary: Vocabulario utilizado para interpretar los tokens.
+
+        Returns:
+            None.
         """
         self._llm = llm
         self._decoder = decoder
         self._functions = functions
+        self._vocabulary = vocabulary
 
     def _encode_fixed_text(
             self,
@@ -50,7 +56,7 @@ class Generator:
             input_ids: list[int],
             previous_state: DecoderState,
             state: DecoderState,
-            token_id: int,
+            token_string: str,
     ) -> None:
         """
         Sincroniza la generación con la transición de estados actual.
@@ -60,7 +66,8 @@ class Generator:
                 de generación.
             previous_state: Estado de la máquina antes de procesar el token.
             state: Estado de la máquina después de procesar el token.
-            token_id: ID del token que provocó la transición.
+            token_string: Representación textual del token que provocó
+                la transición.
 
         Returns:
             None.
@@ -74,8 +81,50 @@ class Generator:
             and state.phase == DecodingState.EXPECT_ARGS_KEY
         ):
             input_ids.extend(
-                self._encode_fixed_text('", "args": {"')
+                self._encode_fixed_text(', "args": {"')
             )
+            return
+
+        if (
+            previous_state.phase == DecodingState.EXPECT_ARGS_KEY
+            and state.phase == DecodingState.EXPECT_ARGS_VALUE
+        ):
+            input_ids.extend(
+                self._encode_fixed_text(": ")
+            )
+            return
+
+        if (
+            previous_state.phase == DecodingState.EXPECT_ARGS_VALUE
+            and state.phase == DecodingState.EXPECT_ARGS_KEY
+        ):
+            if token_string == ",":
+                input_ids.extend(
+                    self._encode_fixed_text('"')
+                )
+                return
+
+            if token_string == '"':
+                input_ids.extend(
+                    self._encode_fixed_text(', "')
+                )
+                return
+
+        if (
+            previous_state.phase == DecodingState.EXPECT_ARGS_VALUE
+            and state.phase == DecodingState.DONE
+        ):
+            if token_string == "}":
+                return
+
+            if token_string == '"':
+                input_ids.extend(
+                    self._encode_fixed_text("}"))
+                return
+
+        raise GenerationError(
+            "Transición de estados no soportada"
+        )
 
     def generate(
             self,
@@ -90,6 +139,8 @@ class Generator:
         input_ids = self._llm.encode(
             semantic_prompt
         )
+
+        json_start = len(input_ids)
 
         fixed_prefix = '{"fn_name": "'
 
@@ -128,6 +179,10 @@ class Generator:
                 np.argmax(constrained_logits)
             )
 
+            token_string = self._vocabulary.get_token(
+                next_token_id
+                )
+
             input_ids.append(
                 next_token_id
             )
@@ -143,6 +198,13 @@ class Generator:
                 input_ids,
                 previous_state,
                 state,
+                token_string,
             )
 
             generated_tokens += 1
+
+        json_token_ids = input_ids[json_start:]
+
+        return self._llm.decode(
+            json_token_ids
+        )
