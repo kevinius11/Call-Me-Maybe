@@ -54,13 +54,21 @@ class Decoder:
             Array de NumPy con los logits modificados según las
             restricciones del estado actual.
         """
-        constrained_logits = logits.copy()
+        constrained_logits = np.full_like(
+            logits,
+            -np.inf,
+        )
 
         for token_id in range(len(self._vocabulary)):
-            token_string = self._vocabulary.get_token(token_id)
+            token_string = self._vocabulary.get_token(
+                token_id
+            )
 
-            if not self._token_is_valid(token_string, state):
-                constrained_logits[token_id] = -np.inf
+            if self._token_is_valid(
+                token_string,
+                state,
+            ):
+                constrained_logits[token_id] = logits[token_id]
 
         return constrained_logits
 
@@ -320,7 +328,12 @@ class Decoder:
                 )
 
             if parameter_type == "string":
-                return self._string_token_is_valid(token_string)
+                if token_string == '"':
+                    return True
+
+                return self._string_token_is_valid(
+                    token_string
+                    )
 
             if parameter_type == "boolean":
                 raise DecoderError(
@@ -383,7 +396,63 @@ class Decoder:
             True si el token puede aparecer dentro del string;
             False si el token cierra el string.
         """
-        return token_string != '"'
+        if token_string == '"':
+            return True
+
+        return '"' not in token_string
+
+    def get_current_parameter_type(
+        self,
+        state: DecoderState,
+    ) -> str:
+        """
+        Devuelve el tipo del parámetro que se está generando.
+
+        Args:
+            state: Estado actual de la máquina de decodificación.
+
+        Returns:
+            Tipo del parámetro actual.
+
+        Raises:
+            DecoderError: Si no existe una función seleccionada,
+                un parámetro actual o el parámetro no está definido.
+        """
+        if state.phase != DecodingState.EXPECT_ARGS_VALUE:
+            raise DecoderError(
+                "get_current_parameter_type() solo puede usarse "
+                "en EXPECT_ARGS_VALUE."
+            )
+
+        if state.selected_function is None:
+            raise DecoderError(
+                "No hay una función seleccionada."
+            )
+
+        function = self._functions_by_name.get(
+            state.selected_function
+        )
+
+        if function is None:
+            raise DecoderError(
+                f"Función no encontrada: {state.selected_function}"
+            )
+
+        if state.current_parameter is None:
+            raise DecoderError(
+                "No hay un parámetro seleccionado."
+            )
+
+        parameter = function.parameters.get(
+            state.current_parameter
+        )
+
+        if parameter is None:
+            raise DecoderError(
+                f"Parámetro no encontrado: {state.current_parameter}"
+            )
+
+        return parameter.type
 
     def can_finish_value(
             self,

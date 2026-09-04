@@ -80,3 +80,20 @@ class LLM:
 
         except Exception as e:
             raise LLMError(f"Error al obtener los logits: {e}") from e
+
+    def get_vocab_path(self) -> str:
+        """
+        Devuelve la ruta del archivo de vocabulario utilizado por el modelo.
+
+        Returns:
+            Ruta absoluta al archivo de vocabulario.
+
+        Raises:
+            LLMError: Si no se puede obtener la ruta del vocabulario.
+        """
+        try:
+            return self._model.get_path_to_vocab_file()
+        except Exception as e:
+            raise LLMError(
+                f"Error al obtener la ruta del vocabulario: {e}"
+            ) from e

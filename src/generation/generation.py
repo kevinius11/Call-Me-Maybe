@@ -7,12 +7,12 @@ import numpy as np
 
 
 class GenerationError(Exception):
-    """Representa un error durante la generación."""
+    """Representa un error durante la generación restringida."""
     pass
 
 
 class Generator:
-    """Orquesta la generacion restringida del JSON."""
+    """Orquesta la generación restringida del JSON."""
     def __init__(self,
                  llm: LLM,
                  decoder: Decoder,
@@ -52,11 +52,11 @@ class Generator:
         return self._llm.encode(text)
 
     def _sync_states(
-            self,
-            input_ids: list[int],
-            previous_state: DecoderState,
-            state: DecoderState,
-            token_string: str,
+        self,
+        input_ids: list[int],
+        previous_state: DecoderState,
+        state: DecoderState,
+        token_string: str,
     ) -> None:
         """
         Sincroniza la generación con la transición de estados actual.
@@ -76,6 +76,10 @@ class Generator:
             GenerationError: Si la transición de estados no es válida o no
                 puede ser sincronizada.
         """
+
+        if previous_state.phase == state.phase:
+            return
+
         if (
             previous_state.phase == DecodingState.EXPECT_FN_NAME
             and state.phase == DecodingState.EXPECT_ARGS_KEY
@@ -89,10 +93,25 @@ class Generator:
             previous_state.phase == DecodingState.EXPECT_ARGS_KEY
             and state.phase == DecodingState.EXPECT_ARGS_VALUE
         ):
-            input_ids.extend(
-                self._encode_fixed_text(": ")
+            parameter_type = self._decoder.get_current_parameter_type(
+                state
             )
-            return
+
+            if parameter_type == "string":
+                input_ids.extend(
+                    self._encode_fixed_text(': "')
+                )
+                return
+
+            if parameter_type == "number":
+                input_ids.extend(
+                    self._encode_fixed_text(": ")
+                )
+                return
+
+            raise GenerationError(
+                f"Tipo de parámetro no soportado: {parameter_type}"
+            )
 
         if (
             previous_state.phase == DecodingState.EXPECT_ARGS_VALUE
@@ -115,11 +134,15 @@ class Generator:
             and state.phase == DecodingState.DONE
         ):
             if token_string == "}":
+                input_ids.extend(
+                    self._encode_fixed_text("}")
+                )
                 return
 
             if token_string == '"':
                 input_ids.extend(
-                    self._encode_fixed_text("}"))
+                    self._encode_fixed_text("}}")
+                )
                 return
 
         raise GenerationError(
@@ -127,10 +150,23 @@ class Generator:
         )
 
     def generate(
-            self,
-            prompt: str,
+        self,
+        prompt: str,
     ) -> str:
-        """Genera una llamada JSON restringida."""
+        """
+        Genera una llamada JSON restringida a partir de un prompt.
+
+        Args:
+            prompt: Solicitud en lenguaje natural que determina la función
+                que debe ser invocada y sus argumentos.
+
+        Returns:
+            Cadena JSON que representa la llamada a una función.
+
+        Raises:
+            GenerationError: Si se supera el límite máximo de tokens
+                o no existen tokens válidos para el estado actual.
+        """
         semantic_prompt = build_prompt(
             prompt,
             self._functions,
@@ -145,7 +181,9 @@ class Generator:
         fixed_prefix = '{"fn_name": "'
 
         input_ids.extend(
-            self._encode_fixed_text(fixed_prefix)
+            self._encode_fixed_text(
+                fixed_prefix
+            )
         )
 
         state = DecoderState(
@@ -170,7 +208,9 @@ class Generator:
                 state,
             )
 
-            if not np.any(np.isfinite(constrained_logits)):
+            if not np.any(
+                np.isfinite(constrained_logits)
+            ):
                 raise GenerationError(
                     "No hay tokens válidos para el estado actual"
                 )
@@ -181,7 +221,7 @@ class Generator:
 
             token_string = self._vocabulary.get_token(
                 next_token_id
-                )
+            )
 
             input_ids.append(
                 next_token_id
