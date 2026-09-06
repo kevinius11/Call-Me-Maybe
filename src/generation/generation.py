@@ -192,6 +192,7 @@ class Generator:
 
         generated_tokens = 0
         MAX_TOKENS = 200
+        STRING_CLOSE_BONUS = 1.0
 
         while state.phase != DecodingState.DONE:
             if generated_tokens >= MAX_TOKENS:
@@ -214,6 +215,17 @@ class Generator:
                 raise GenerationError(
                     "No hay tokens válidos para el estado actual"
                 )
+
+            if (
+                state.phase == DecodingState.EXPECT_ARGS_VALUE
+                and state.current_parameter is not None
+                and state.prefix != ""
+                and self._decoder.get_current_parameter_type(state) == "string"
+            ):
+                quote_id = self._vocabulary.get_token_id('"')
+
+                if np.isfinite(constrained_logits[quote_id]):
+                    constrained_logits[quote_id] += STRING_CLOSE_BONUS
 
             next_token_id = int(
                 np.argmax(constrained_logits)
