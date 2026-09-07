@@ -13,6 +13,9 @@ class GenerationError(Exception):
 
 class Generator:
     """Orquesta la generación restringida del JSON."""
+
+    STRING_CLOSE_BONUS = 1.0
+
     def __init__(self,
                  llm: LLM,
                  decoder: Decoder,
@@ -149,6 +152,34 @@ class Generator:
             "Transición de estados no soportada"
         )
 
+    def _apply_generation_bias(
+            self,
+            constrained_logits: np.ndarray,
+            state: DecoderState,
+    ) -> np.ndarray:
+        """
+        Aplica preferencias de generación sobre los tokens válidos.
+
+        Args:
+            logits: Logits ya restringidos por el decoder.
+            state: Estado actual de la máquina de decodificación.
+
+        Returns:
+            Logits modificados con la política de generación.
+        """
+        if (
+            state.phase == DecodingState.EXPECT_ARGS_VALUE
+            and state.current_parameter is not None
+            and state.prefix != ""
+            and self._decoder.get_current_parameter_type(state) == "string"
+        ):
+            quote_id = self._vocabulary.get_token_id('"')
+
+            if np.isfinite(constrained_logits[quote_id]):
+                constrained_logits += self.STRING_CLOSE_BONUS
+
+        return constrained_logits
+
     def generate(
         self,
         prompt: str,
@@ -192,7 +223,6 @@ class Generator:
 
         generated_tokens = 0
         MAX_TOKENS = 200
-        STRING_CLOSE_BONUS = 1.0
 
         while state.phase != DecodingState.DONE:
             if generated_tokens >= MAX_TOKENS:
@@ -216,16 +246,10 @@ class Generator:
                     "No hay tokens válidos para el estado actual"
                 )
 
-            if (
-                state.phase == DecodingState.EXPECT_ARGS_VALUE
-                and state.current_parameter is not None
-                and state.prefix != ""
-                and self._decoder.get_current_parameter_type(state) == "string"
-            ):
-                quote_id = self._vocabulary.get_token_id('"')
-
-                if np.isfinite(constrained_logits[quote_id]):
-                    constrained_logits[quote_id] += STRING_CLOSE_BONUS
+            constrained_logits = self._apply_generation_bias(
+                constrained_logits,
+                state,
+            )
 
             next_token_id = int(
                 np.argmax(constrained_logits)
