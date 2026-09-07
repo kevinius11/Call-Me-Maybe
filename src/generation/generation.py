@@ -161,7 +161,7 @@ class Generator:
         Aplica preferencias de generación sobre los tokens válidos.
 
         Args:
-            logits: Logits ya restringidos por el decoder.
+            constrained_logits: Logits ya restringidos por el decoder.
             state: Estado actual de la máquina de decodificación.
 
         Returns:
@@ -176,7 +176,7 @@ class Generator:
             quote_id = self._vocabulary.get_token_id('"')
 
             if np.isfinite(constrained_logits[quote_id]):
-                constrained_logits += self.STRING_CLOSE_BONUS
+                constrained_logits[quote_id] += self.STRING_CLOSE_BONUS
 
         return constrained_logits
 
