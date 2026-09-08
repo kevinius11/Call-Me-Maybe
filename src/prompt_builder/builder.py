@@ -17,10 +17,19 @@ def build_prompt(prompt: str, functions: list[FunctionDefinition]) -> str:
     # Instruccion general al LLM
 
     instruction = (
-        "You are an expert API router. Given the user's request"
-        " and the list of JSON function schemas, select the most accurate"
-        " function to resolve the request and return the selected function"
-        " name and its required parameters strictly in JSON format."
+        "You are an expert API router. Analyze the user's request and select "
+        "the most appropriate function from the available function definitions. "
+        "Extract the values required by that function from the user's request. "
+        "For replacement parameters, use the exact symbol or text requested by "
+        "the user; descriptive words such as 'asterisks' refer to the symbol '*'. "
+        "For regex parameters, match the target text itself without adding "
+        "surrounding text or combining separate occurrences. "
+        "Return the result using exactly this JSON structure: "
+        '{"fn_name": "<function_name>", "args": {<parameter_name>: <value>}}. '
+        "The function name must match one of the available functions. "
+        "The args object must contain the parameters required by that function. "
+        "Do not use any other field names. Do not use 'fn_params'. "
+        "Do not add explanations or Markdown."
     )
 
     # Formateamos funciones

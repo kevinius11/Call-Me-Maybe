@@ -15,6 +15,7 @@ class Generator:
     """Orquesta la generación restringida del JSON."""
 
     STRING_CLOSE_BONUS = 1.0
+    REGEX_CLOSE_BONUS = 2.1
 
     def __init__(self,
                  llm: LLM,
@@ -175,8 +176,13 @@ class Generator:
         ):
             quote_id = self._vocabulary.get_token_id('"')
 
+            bonus = self.STRING_CLOSE_BONUS
+
+            if state.current_parameter == "regex":
+                bonus = self.REGEX_CLOSE_BONUS
+
             if np.isfinite(constrained_logits[quote_id]):
-                constrained_logits[quote_id] += self.STRING_CLOSE_BONUS
+                constrained_logits[quote_id] += bonus
 
         return constrained_logits
 
