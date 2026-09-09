@@ -15,7 +15,7 @@ class Generator:
     """Orquesta la generación restringida del JSON."""
 
     STRING_CLOSE_BONUS = 1.0
-    REGEX_CLOSE_BONUS = 2.1
+    REGEX_CLOSE_BONUS = 1.25
 
     def __init__(self,
                  llm: LLM,
@@ -32,7 +32,7 @@ class Generator:
             functions: Funciones disponibles para el modelo.
             vocabulary: Vocabulario utilizado para interpretar los tokens.
 
-        Returns:
+        Returns:s
             None.
         """
         self._llm = llm

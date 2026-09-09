@@ -46,19 +46,39 @@ def load_prompts(path: str) -> list[str]:
 
     Raises:
         FileNotFoundError: Si el archivo no existe.
-        ValueError: Si el JSON es invalido.
+        ValueError: Si el JSON es invalido o tiene una estructura incorrecta.
     """
     try:
         with open(path) as f:
-            data_prompts: list[str] = json.load(f)
+            data_prompts = json.load(f)
+
             if not isinstance(data_prompts, list):
-                raise ValueError("JSON must be a list, "
-                                 "not object/dictionaries.")
-            if not all(isinstance(prompt, str) for prompt in data_prompts):
-                raise ValueError("All prompts must be strings.")
-            return data_prompts
+                raise ValueError(
+                    "JSON must be a list, not object/dictionaries."
+                )
+
+            prompts = []
+
+            for item in data_prompts:
+                if not isinstance(item, dict):
+                    raise ValueError(
+                        "All prompt entries must be dictionaries."
+                    )
+
+                prompt = item.get("prompt")
+
+                if not isinstance(prompt, str):
+                    raise ValueError(
+                        "Each prompt must contain a string 'prompt' field."
+                    )
+
+                prompts.append(prompt)
+
+            return prompts
+
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in {path}: {e}")
+
     except FileNotFoundError:
         raise FileNotFoundError(
             f"Prompts file not found: {path}"

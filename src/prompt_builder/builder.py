@@ -30,6 +30,8 @@ def build_prompt(prompt: str, functions: list[FunctionDefinition]) -> str:
         "The args object must contain the parameters required by that function. "
         "Do not use any other field names. Do not use 'fn_params'. "
         "Do not add explanations or Markdown."
+        "For replacement parameters, use the actual replacement"
+        "symbol when the user refers to a symbol by its name."
     )
 
     # Formateamos funciones

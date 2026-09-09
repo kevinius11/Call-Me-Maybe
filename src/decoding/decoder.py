@@ -331,9 +331,15 @@ class Decoder:
                 if token_string == '"':
                     return True
 
+                if state.current_parameter == "regex":
+                    return self._regex_token_is_valid(
+                        token_string,
+                        state.prefix,
+                    )
+
                 return self._string_token_is_valid(
                     token_string
-                    )
+                )
 
             if parameter_type == "boolean":
                 raise DecoderError(
@@ -381,6 +387,39 @@ class Decoder:
             return "." not in prefix
 
         return False
+
+    def _regex_token_is_valid(
+        self,
+        token_string: str,
+        prefix: str,
+    ) -> bool:
+        """
+        Determina si un token puede continuar una expresion regular simple.
+
+        Args:
+            token_string: Representacion textual del token.
+            prefix: Parte de la regex generada hasta el momento.
+
+        Returns:
+            True si el token puede formar parte de una regex simple.
+
+            False si contiene caracteres no permitidos.
+        """
+        if token_string == '"':
+            return True
+
+        if '"' in token_string:
+            return False
+
+        allowed_specials = {"|", "_", " "}
+
+        for char in token_string:
+            if char.isalnum() or char in allowed_specials:
+                continue
+
+            return False
+
+        return True
 
     def _string_token_is_valid(
             self,
