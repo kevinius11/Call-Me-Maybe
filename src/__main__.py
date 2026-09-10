@@ -1,12 +1,13 @@
 import argparse
 import json
-from pathlib import Path
 
 from src.decoding import Decoder
 from src.generation import Generator
 from src.input import load_function_definitions, load_prompts
 from src.llm import LLM, Vocabulary
+from src.output import save_results
 from src.schemas import FunctionCallResult, FunctionDefinition
+from src.validation import SemanticValidator
 
 
 DEFAULT_INPUT = "data/input/function_calling_tests.json"
@@ -15,25 +16,41 @@ DEFAULT_OUTPUT = "data/output/function_calling_results.json"
 
 
 def parse_arguments() -> argparse.Namespace:
-    """Parse command-line arguments."""
+    """
+    Procesa los argumentos recibidos desde la línea de comandos.
+
+    Returns:
+        Argumentos procesados.
+    """
     parser = argparse.ArgumentParser(
-        description="Generate structured function calls from prompts."
+        description="Genera llamadas de función estructuradas "
+                    "a partir de prompts.",
     )
     parser.add_argument(
         "--input",
         default=DEFAULT_INPUT,
-        help="Path to the input prompts JSON file.",
+        help="Ruta al archivo JSON de prompts.",
     )
     parser.add_argument(
         "--output",
         default=DEFAULT_OUTPUT,
-        help="Path to the output JSON file.",
+        help="Ruta al archivo JSON de salida.",
     )
     return parser.parse_args()
 
 
-def build_functions(path: str) -> list[FunctionDefinition]:
-    """Load and validate function definitions."""
+def build_functions(
+    path: str,
+) -> list[FunctionDefinition]:
+    """
+    Carga y valida las definiciones de funciones.
+
+    Args:
+        path: Ruta al archivo JSON de definiciones.
+
+    Returns:
+        Lista de definiciones de funciones validadas.
+    """
     raw_functions = load_function_definitions(path)
 
     return [
@@ -45,7 +62,15 @@ def build_functions(path: str) -> list[FunctionDefinition]:
 def build_generator(
     functions: list[FunctionDefinition],
 ) -> Generator:
-    """Build the function call generator."""
+    """
+    Construye el generador de llamadas de función.
+
+    Args:
+        functions: Definiciones de funciones disponibles.
+
+    Returns:
+        Generador configurado.
+    """
     llm = LLM()
     vocabulary = Vocabulary(llm.get_vocab_path())
     decoder = Decoder(functions, vocabulary)
@@ -61,56 +86,67 @@ def build_generator(
 def process_prompts(
     prompts: list[str],
     generator: Generator,
+    validator: SemanticValidator,
 ) -> list[FunctionCallResult]:
-    """Generate and validate results for all prompts."""
+    """
+    Genera y valida una llamada de función para cada prompt.
+
+    Args:
+        prompts: Lista de solicitudes en lenguaje natural.
+        generator: Generador de llamadas restringidas.
+        validator: Validador semántico de las llamadas.
+
+    Returns:
+        Lista de resultados de llamadas validadas.
+
+    Raises:
+        ValueError: Si la salida generada no contiene un JSON válido.
+    """
     results: list[FunctionCallResult] = []
 
     for prompt in prompts:
         generated = generator.generate(prompt)
-        data = json.loads(generated)
+
+        try:
+            data = json.loads(generated)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "La generación no produjo un JSON válido "
+                f"para el prompt: {prompt}"
+            ) from exc
+
+        validator.validate(data)
 
         result = FunctionCallResult(
             prompt=prompt,
             fn_name=data["fn_name"],
             args=data["args"],
         )
+
         results.append(result)
 
     return results
 
 
-def save_results(
-    results: list[FunctionCallResult],
-    path: str,
-) -> None:
-    """Save generated results as JSON."""
-    output_path = Path(path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    data = [
-        result.model_dump()
-        for result in results
-    ]
-
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(
-            data,
-            file,
-            indent=2,
-            ensure_ascii=False,
-        )
-
-
 def main() -> None:
-    """Run the complete function-calling pipeline."""
+    """Ejecuta el flujo completo de generación de llamadas."""
     args = parse_arguments()
 
     prompts = load_prompts(args.input)
     functions = build_functions(DEFAULT_FUNCTIONS)
     generator = build_generator(functions)
+    validator = SemanticValidator(functions)
 
-    results = process_prompts(prompts, generator)
-    save_results(results, args.output)
+    results = process_prompts(
+        prompts,
+        generator,
+        validator,
+    )
+
+    save_results(
+        results,
+        args.output,
+    )
 
 
 if __name__ == "__main__":

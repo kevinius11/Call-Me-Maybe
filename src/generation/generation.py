@@ -15,7 +15,7 @@ class Generator:
     """Orquesta la generación restringida del JSON."""
 
     STRING_CLOSE_BONUS = 1.0
-    REGEX_CLOSE_BONUS = 1.25
+    REGEX_CLOSE_BONUS = 1.5
 
     def __init__(self,
                  llm: LLM,
@@ -45,13 +45,13 @@ class Generator:
             text: str,
     ) -> list[int]:
         """
-        Tokeniza un fragmento fijo del formato de generación.
+        Codifica texto fijo del formato JSON en IDs de tokens.
 
         Args:
-            text: Texto fijo que debe formar parte del contexto.
+            text: Fragmento de texto que se debe codificar.
 
         Returns:
-            Lista de token IDs correspondiente al texto.
+            Lista de IDs de tokens correspondientes al texto.
         """
         return self._llm.encode(text)
 
@@ -63,22 +63,16 @@ class Generator:
         token_string: str,
     ) -> None:
         """
-        Sincroniza la generación con la transición de estados actual.
+        Sincroniza la sintaxis fija con las transiciones del decodificador.
 
         Args:
-            input_ids: Lista de token IDs que representa el contexto actual
-                de generación.
-            previous_state: Estado de la máquina antes de procesar el token.
-            state: Estado de la máquina después de procesar el token.
-            token_string: Representación textual del token que provocó
-                la transición.
-
-        Returns:
-            None.
+            input_ids: Secuencia actual de IDs de entrada y generación.
+            previous_state: Estado anterior al procesar el token.
+            state: Estado posterior al procesar el token.
+            token_string: Representación textual del token generado.
 
         Raises:
-            GenerationError: Si la transición de estados no es válida o no
-                puede ser sincronizada.
+            GenerationError: Si la transición de estados no está soportada.
         """
 
         if previous_state.phase == state.phase:
@@ -158,16 +152,16 @@ class Generator:
             constrained_logits: np.ndarray,
             state: DecoderState,
     ) -> np.ndarray:
-        """
-        Aplica preferencias de generación sobre los tokens válidos.
+        """Aplica preferencias de generación sobre los tokens válidos.
 
         Args:
-            constrained_logits: Logits ya restringidos por el decoder.
-            state: Estado actual de la máquina de decodificación.
+            constrained_logits: Logits después de aplicar las restricciones.
+            state: Estado actual del decodificador.
 
         Returns:
-            Logits modificados con la política de generación.
+            Logits modificados con las preferencias de generación.
         """
+
         if (
             state.phase == DecodingState.EXPECT_ARGS_VALUE
             and state.current_parameter is not None
@@ -190,19 +184,17 @@ class Generator:
         self,
         prompt: str,
     ) -> str:
-        """
-        Genera una llamada JSON restringida a partir de un prompt.
+        """Genera una llamada de función JSON a partir de un prompt.
 
         Args:
             prompt: Solicitud en lenguaje natural que determina la función
-                que debe ser invocada y sus argumentos.
+                que debe utilizarse.
 
         Returns:
-            Cadena JSON que representa la llamada a una función.
+            Cadena JSON que representa la llamada generada.
 
         Raises:
-            GenerationError: Si se supera el límite máximo de tokens
-                o no existen tokens válidos para el estado actual.
+            GenerationError: Si la generación no puede completarse.
         """
         semantic_prompt = build_prompt(
             prompt,

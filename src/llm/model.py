@@ -3,6 +3,7 @@ import numpy as np
 
 
 class LLMError(Exception):
+    """Se produce cuando ocurre un error al utilizar el modelo."""
     pass
 
 

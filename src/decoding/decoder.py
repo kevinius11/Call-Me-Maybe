@@ -78,14 +78,17 @@ class Decoder:
         state: DecoderState,
     ) -> DecoderState:
         """
-        Actualiza el estado de la máquina tras la selección de un token.
+        Actualiza el estado después de consumir un token.
 
         Args:
-            token_id: Identificador del token seleccionado.
-            state: Estado actual de la máquina de decodificación.
+            token_id: ID del token generado.
+            state: Estado actual del decodificador.
 
         Returns:
-            Nuevo estado de la máquina de decodificación.
+            Nuevo estado del decodificador.
+
+        Raises:
+            DecoderError: Si no se puede procesar el token en el estado actual.
         """
         token_string = self._vocabulary.get_token(token_id)
 
@@ -215,15 +218,17 @@ class Decoder:
         state: DecoderState,
     ) -> bool:
         """
-        Determina si un token puede generarse en el estado actual.
+        Comprueba si un token es válido en el estado actual.
 
         Args:
-            token_string: Representación textual del token.
-            state: Estado actual de la máquina de decodificación.
+            token_string: Texto representado por el token candidato.
+            state: Estado actual del decodificador.
 
         Returns:
-            True si el token es válido para la generación actual;
-            False en caso contrario.
+            True si el token es válido y False en caso contrario.
+
+        Raises:
+            DecoderError: Si el estado actual no es válido o no está soportado.
         """
 
         # 1. EXPECT_FN_NAME
@@ -361,15 +366,15 @@ class Decoder:
         prefix: str,
     ) -> bool:
         """
-        Determina si un token puede continuar la construcción de un número.
+        Comprueba si un token puede continuar un valor numérico.
 
         Args:
-            token_string: Representación textual del token candidato.
+            token_string: Texto del token candidato.
             prefix: Parte del número generada hasta el momento.
 
         Returns:
-            True si el token puede continuar la construcción del número.
-            False si el token no es valido.
+            True si el token puede continuar el número y
+            False en caso contrario.
         """
         if prefix == "":
             return token_string.isdigit() or token_string == "-"
@@ -394,16 +399,15 @@ class Decoder:
         prefix: str,
     ) -> bool:
         """
-        Determina si un token puede continuar una expresion regular simple.
+        Comprueba si un token puede continuar una expresión regular.
 
         Args:
-            token_string: Representacion textual del token.
-            prefix: Parte de la regex generada hasta el momento.
+            token_string: Texto del token candidato.
+            prefix: Parte de la expresión regular generada hasta el momento.
 
         Returns:
-            True si el token puede formar parte de una regex simple.
-
-            False si contiene caracteres no permitidos.
+            True si el token puede continuar la expresión y
+            False en caso contrario.
         """
         if token_string == '"':
             return True
@@ -426,14 +430,14 @@ class Decoder:
             token_string: str,
     ) -> bool:
         """
-        Determina si un token es válido dentro de un string JSON.
+        Comprueba si un token puede aparecer dentro de un string JSON.
 
         Args:
-            token_string: Representación textual del token candidato.
+            token_string: Texto del token candidato.
 
         Returns:
-            True si el token puede aparecer dentro del string;
-            False si el token cierra el string.
+            True si el token es válido dentro del string y
+            False en caso contrario.
         """
         if token_string == '"':
             return True
@@ -445,17 +449,16 @@ class Decoder:
         state: DecoderState,
     ) -> str:
         """
-        Devuelve el tipo del parámetro que se está generando.
+        Obtiene el tipo del parámetro que se está generando.
 
         Args:
-            state: Estado actual de la máquina de decodificación.
+            state: Estado actual del decodificador.
 
         Returns:
             Tipo del parámetro actual.
 
         Raises:
-            DecoderError: Si no existe una función seleccionada,
-                un parámetro actual o el parámetro no está definido.
+            DecoderError: Si no existe la función o el parámetro actual.
         """
         if state.phase != DecodingState.EXPECT_ARGS_VALUE:
             raise DecoderError(
@@ -498,19 +501,16 @@ class Decoder:
             state: DecoderState,
     ) -> bool:
         """
-        Determina si el valor actual puede darse por terminado.
+        Comprueba si el valor actual puede darse por terminado.
 
         Args:
-            state: Estado actual de la máquina de decodificación.
+            state: Estado actual del decodificador.
 
         Returns:
-            True si el valor actual puede terminarse.
-            False si todavía debe continuar la generación.
+            True si el valor puede terminarse y False en caso contrario.
 
         Raises:
-            DecoderError: Si el estado no corresponde a EXPECT_ARGS_VALUE,
-                si no existe la función seleccionada o si el parámetro actual
-                no existe.
+            DecoderError: Si el estado o el parámetro actual no son válidos.
         """
 
         if state.phase != DecodingState.EXPECT_ARGS_VALUE:
@@ -569,19 +569,17 @@ class Decoder:
         current_parameter: str,
     ) -> bool:
         """
-        Determina si existen parámetros después del parámetro actual.
+        Comprueba si quedan parámetros después del actual.
 
         Args:
-            function: Definición de la función cuyos parámetros se están
-                evaluando.
-            current_parameter: Nombre del parámetro que se está procesando.
+            function: Función cuyos parámetros se están procesando.
+            current_parameter: Parámetro que se está procesando actualmente.
 
         Returns:
-            True si existen parámetros posteriores al parámetro actual.
-            False si el parámetro actual es el último.
+            True si quedan parámetros y False si el actual es el último.
 
         Raises:
-            DecoderError: Si el parámetro actual no existe en la función.
+            DecoderError: Si el parámetro actual no existe.
         """
         parameter_names = list(function.parameters.keys())
 
