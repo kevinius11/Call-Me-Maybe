@@ -4,10 +4,10 @@ import json
 from src.decoding import Decoder
 from src.generation import Generator
 from src.input import load_function_definitions, load_prompts
-from src.llm import LLM, Vocabulary
-from src.output import save_results
+from src.llm import LLMError, LLM, Vocabulary
+from src.output import OutputError, save_results
 from src.schemas import FunctionCallResult, FunctionDefinition
-from src.validation import SemanticValidator
+from src.validation import ValidationError, SemanticValidator
 
 
 DEFAULT_INPUT = "data/input/function_calling_tests.json"
@@ -130,23 +130,35 @@ def process_prompts(
 
 def main() -> None:
     """Ejecuta el flujo completo de generación de llamadas."""
-    args = parse_arguments()
+    try:
+        args = parse_arguments()
 
-    prompts = load_prompts(args.input)
-    functions = build_functions(DEFAULT_FUNCTIONS)
-    generator = build_generator(functions)
-    validator = SemanticValidator(functions)
+        prompts = load_prompts(args.input)
+        functions = build_functions(DEFAULT_FUNCTIONS)
 
-    results = process_prompts(
-        prompts,
-        generator,
-        validator,
-    )
+        generator = build_generator(functions)
+        validator = SemanticValidator(functions)
 
-    save_results(
-        results,
-        args.output,
-    )
+        results = process_prompts(
+            prompts,
+            generator,
+            validator,
+        )
+
+        save_results(
+            results,
+            args.output,
+        )
+
+    except (
+        FileNotFoundError,
+        ValueError,
+        ValidationError,
+        OutputError,
+        LLMError,
+    ) as exc:
+        print(f"Error: {exc}")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

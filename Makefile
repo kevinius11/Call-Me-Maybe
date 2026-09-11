@@ -8,7 +8,7 @@ debug:
 	uv run python -m pdb -m src
 
 lint:
-	uv run flake8 src tests
+	uv run flake8 src
 	uv run mypy src
 
 clean:

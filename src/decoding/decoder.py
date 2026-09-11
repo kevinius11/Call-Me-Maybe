@@ -208,9 +208,9 @@ class Decoder:
                     "aún no está implementada"
                 )
 
-            raise DecoderError(
-                f"Tipo de parámetro no soportado: {parameter_type}"
-            )
+        raise DecoderError(
+            f"Tipo de parámetro no soportado: {parameter_type}"
+        )
 
     def _token_is_valid(
         self,
@@ -290,6 +290,8 @@ class Decoder:
                     "No hay una función seleccionada en EXPECT_ARGS_VALUE"
                 )
 
+            current_parameter = state.current_parameter
+
             function = self._functions_by_name.get(
                 state.selected_function
             )
@@ -300,12 +302,12 @@ class Decoder:
                 )
 
             parameter = function.parameters.get(
-                state.current_parameter
+                current_parameter
             )
 
             if parameter is None:
                 raise DecoderError(
-                    f"Parámetro no encontrado: {state.current_parameter}"
+                    f"Parámetro no encontrado: {current_parameter}"
                 )
 
             parameter_type = parameter.type
@@ -336,7 +338,7 @@ class Decoder:
                 if token_string == '"':
                     return True
 
-                if state.current_parameter == "regex":
+                if current_parameter == "regex":
                     return self._regex_token_is_valid(
                         token_string,
                         state.prefix,
@@ -497,8 +499,8 @@ class Decoder:
         return parameter.type
 
     def can_finish_value(
-            self,
-            state: DecoderState,
+        self,
+        state: DecoderState,
     ) -> bool:
         """
         Comprueba si el valor actual puede darse por terminado.
@@ -512,29 +514,41 @@ class Decoder:
         Raises:
             DecoderError: Si el estado o el parámetro actual no son válidos.
         """
-
         if state.phase != DecodingState.EXPECT_ARGS_VALUE:
             raise DecoderError(
                 "can_finish_value() solo puede usarse "
                 "en EXPECT_ARGS_VALUE."
             )
 
+        if state.selected_function is None:
+            raise DecoderError(
+                "No hay una función seleccionada."
+            )
+
+        if state.current_parameter is None:
+            raise DecoderError(
+                "No hay un parámetro seleccionado en EXPECT_ARGS_VALUE."
+            )
+
+        selected_function = state.selected_function
+        current_parameter = state.current_parameter
+
         function = self._functions_by_name.get(
-            state.selected_function
+            selected_function
         )
 
         if function is None:
             raise DecoderError(
-                f"Funcion no encontrada: {state.selected_function}"
+                f"Función no encontrada: {selected_function}"
             )
 
         parameter = function.parameters.get(
-            state.current_parameter
+            current_parameter
         )
 
         if parameter is None:
             raise DecoderError(
-                f"Parametro no encontrado: {state.current_parameter}"
+                f"Parámetro no encontrado: {current_parameter}"
             )
 
         parameter_type = parameter.type
@@ -556,11 +570,11 @@ class Decoder:
 
         if parameter_type == "boolean":
             raise DecoderError(
-                "no implemented"
+                "Tipo de parámetro booleano no implementado."
             )
 
         raise DecoderError(
-            f"Tipo de parametro no soportado: {parameter_type}"
+            f"Tipo de parámetro no soportado: {parameter_type}"
         )
 
     def _has_more_parameters(
