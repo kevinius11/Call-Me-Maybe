@@ -529,6 +529,79 @@ The output writer was tested independently to ensure that:
 * valid `FunctionCallResult` objects are serialized;
 * the generated JSON can be loaded again.
 
+
+### Invalid Input Testing
+
+The input layer was also tested against malformed and invalid JSON files.
+
+The following cases were verified:
+
+#### Invalid JSON syntax
+
+```bash
+uv run python -m src --input /tmp/invalid_syntax.json
+````
+
+Example result:
+
+```text
+Error: Invalid JSON in /tmp/invalid_syntax.json: Expecting ',' delimiter: line 3 column 1 (char 23)
+```
+
+#### Missing input file
+
+```bash
+uv run python -m src --input /tmp/no_existe.json
+```
+
+Example result:
+
+```text
+Error: Prompts file not found: /tmp/no_existe.json
+```
+
+#### Invalid JSON structure
+
+A valid JSON object was provided instead of the expected list:
+
+```bash
+uv run python -m src --input /tmp/not_a_list.json
+```
+
+Example result:
+
+```text
+Error: JSON must be a list, not object/dictionaries.
+```
+
+#### Invalid prompt entry
+
+A list containing an invalid prompt entry was tested:
+
+```bash
+uv run python -m src --input /tmp/bad_items.json
+```
+
+Example result:
+
+```text
+Error: All prompt entries must be dictionaries.
+```
+
+These tests confirm that malformed input files are detected before the generation
+pipeline starts and are reported as controlled errors instead of exposing a
+Python traceback to the user.
+
+```markdown
+#### Invalid function definition
+
+An invalid function definition was tested with a parameter collection that was
+not a JSON object.
+
+The Pydantic validation layer correctly rejected the definition before model
+generation started.
+```
+
 ### Integration testing
 
 The complete application was executed using:
