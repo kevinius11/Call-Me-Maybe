@@ -657,12 +657,16 @@ and produces:
 data/output/function_calling_results.json
 ```
 
-### Custom paths
+### Custom input, function definitions, and output
+
+The input prompts, function definitions, and output path can be changed from
+the command line:
 
 ```bash
 uv run python -m src \
+    --functions_definition data/input/function_definitions.json \
     --input data/input/function_calling_tests.json \
-    --output data/output/results.json
+    --output data/output/function_calls.json
 ```
 
 ### Example prompt

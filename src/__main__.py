@@ -26,16 +26,25 @@ def parse_arguments() -> argparse.Namespace:
         description="Genera llamadas de función estructuradas "
                     "a partir de prompts.",
     )
+
+    parser.add_argument(
+        "--functions_definition",
+        default=DEFAULT_FUNCTIONS,
+        help="Ruta al archivo JSON de definiciones de funciones.",
+    )
+
     parser.add_argument(
         "--input",
         default=DEFAULT_INPUT,
         help="Ruta al archivo JSON de prompts.",
     )
+
     parser.add_argument(
         "--output",
         default=DEFAULT_OUTPUT,
         help="Ruta al archivo JSON de salida.",
     )
+
     return parser.parse_args()
 
 
@@ -134,7 +143,10 @@ def main() -> None:
         args = parse_arguments()
 
         prompts = load_prompts(args.input)
-        functions = build_functions(DEFAULT_FUNCTIONS)
+
+        functions = build_functions(
+            args.functions_definition
+        )
 
         generator = build_generator(functions)
         validator = SemanticValidator(functions)
