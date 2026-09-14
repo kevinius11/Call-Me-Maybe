@@ -669,6 +669,13 @@ uv run python -m src \
     --output data/output/function_calls.json
 ```
 
+By default, the program uses:
+
+* Function definitions: data/input/function_definitions.json
+* Prompts: data/input/function_calling_tests.json
+* Output: data/output/function_calling_results.json
+
+
 ### Example prompt
 
 Input:
