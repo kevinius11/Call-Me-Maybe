@@ -203,9 +203,34 @@ class Decoder:
                 )
 
             if parameter_type == "boolean":
-                raise DecoderError(
-                    "La actualización de valores booleanos "
-                    "aún no está implementada"
+                if token_string in {",", "}"}:
+                    if not self.can_finish_value(state):
+                        return state
+
+                    has_more_parameters = self._has_more_parameters(
+                        function,
+                        state.current_parameter,
+                    )
+
+                    if token_string == ",":
+                        return state.model_copy(
+                            update={
+                                "prefix": "",
+                                "phase": DecodingState.EXPECT_ARGS_KEY,
+                            }
+                        )
+
+                    return state.model_copy(
+                        update={
+                            "prefix": "",
+                            "phase": DecodingState.DONE,
+                        }
+                    )
+
+                return state.model_copy(
+                    update={
+                        "prefix": state.prefix + token_string
+                    }
                 )
 
         raise DecoderError(
@@ -369,8 +394,23 @@ class Decoder:
                 )
 
             if parameter_type == "boolean":
-                raise DecoderError(
-                    "Aun no esta implementado"
+                if token_string in {",", "}"}:
+                    if not self.can_finish_value(state):
+                        return False
+
+                    has_more_parameters = self._has_more_parameters(
+                        function,
+                        current_parameter,
+                    )
+
+                    if token_string == ",":
+                        return has_more_parameters
+
+                    return not has_more_parameters
+
+                return self._boolean_token_is_valid(
+                    token_string,
+                    state.prefix,
                 )
 
             raise DecoderError(
@@ -428,8 +468,8 @@ class Decoder:
             prefix: Parte del entero generada hasta el momento.
 
         Returns:
-            True si el token puede continuar el entero y False en caso
-            contrario.
+            True si el token puede continuar el entero y
+            False en caso contrario.
         """
         if prefix == "":
             return token_string.isdigit() or token_string == "-"
@@ -438,6 +478,30 @@ class Decoder:
             return token_string.isdigit()
 
         return token_string.isdigit()
+
+    def _boolean_token_is_valid(
+        self,
+        token_string: str,
+        prefix: str,
+    ) -> bool:
+        """
+        Comprueba si un token puede continuar un valor booleano.
+
+        Args:
+            token_string: Texto del token candidato.
+            prefix: Parte del booleano generada hasta el momento.
+
+        Returns:
+            True si el token puede continuar el booleano y
+            False en caso contrario.
+        """
+        candidates = ("true", "false")
+        candidate_prefix = prefix + token_string
+
+        return any(
+            value.startswith(candidate_prefix)
+            for value in candidates
+        )
 
     def _regex_token_is_valid(
         self,
@@ -597,7 +661,7 @@ class Decoder:
 
         parameter_type = parameter.type
 
-        if parameter_type == "number":
+        if parameter_type in {"number", "integer"}:
             if state.prefix == "":
                 return False
 
@@ -613,9 +677,7 @@ class Decoder:
             return False
 
         if parameter_type == "boolean":
-            raise DecoderError(
-                "Tipo de parámetro booleano no implementado."
-            )
+            return state.prefix in {"true", "false"}
 
         raise DecoderError(
             f"Tipo de parámetro no soportado: {parameter_type}"

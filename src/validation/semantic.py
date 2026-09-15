@@ -115,6 +115,12 @@ class SemanticValidator:
                 and not isinstance(value, bool)
             )
 
+        if expected_type == "integer":
+            return (
+                isinstance(value, int)
+                and not isinstance(value, bool)
+            )
+
         if expected_type == "string":
             return isinstance(value, str)
 

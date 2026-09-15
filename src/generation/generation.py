@@ -32,8 +32,6 @@ class Generator:
             functions: Funciones disponibles para el modelo.
             vocabulary: Vocabulario utilizado para interpretar los tokens.
 
-        Returns:s
-            None.
         """
         self._llm = llm
         self._decoder = decoder
@@ -101,7 +99,7 @@ class Generator:
                 )
                 return
 
-            if parameter_type in {"number", "integer"}:
+            if parameter_type in {"number", "integer", "boolean"}:
                 input_ids.extend(
                     self._encode_fixed_text(": ")
                 )
