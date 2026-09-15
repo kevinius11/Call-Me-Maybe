@@ -151,7 +151,7 @@ class Decoder:
 
             parameter_type = parameter.type
 
-            if parameter_type == "number":
+            if parameter_type in {"number", "integer"}:
                 if token_string == ",":
                     return state.model_copy(
                         update={
@@ -334,6 +334,26 @@ class Decoder:
                     state.prefix,
                 )
 
+            if parameter_type == "integer":
+                if token_string in {",", "}"}:
+                    if not self.can_finish_value(state):
+                        return False
+
+                    has_more_parameters = self._has_more_parameters(
+                        function,
+                        current_parameter,
+                    )
+
+                    if token_string == ",":
+                        return has_more_parameters
+
+                    return not has_more_parameters
+
+                return self._integer_token_is_valid(
+                    token_string,
+                    state.prefix,
+                )
+
             if parameter_type == "string":
                 if token_string == '"':
                     return True
@@ -394,6 +414,30 @@ class Decoder:
             return "." not in prefix
 
         return False
+
+    def _integer_token_is_valid(
+        self,
+        token_string: str,
+        prefix: str,
+    ) -> bool:
+        """
+        Comprueba si un token puede continuar un valor entero.
+
+        Args:
+            token_string: Texto del token candidato.
+            prefix: Parte del entero generada hasta el momento.
+
+        Returns:
+            True si el token puede continuar el entero y False en caso
+            contrario.
+        """
+        if prefix == "":
+            return token_string.isdigit() or token_string == "-"
+
+        if prefix == "-":
+            return token_string.isdigit()
+
+        return token_string.isdigit()
 
     def _regex_token_is_valid(
         self,

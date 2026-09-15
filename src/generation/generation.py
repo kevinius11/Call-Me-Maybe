@@ -101,7 +101,7 @@ class Generator:
                 )
                 return
 
-            if parameter_type == "number":
+            if parameter_type in {"number", "integer"}:
                 input_ids.extend(
                     self._encode_fixed_text(": ")
                 )
