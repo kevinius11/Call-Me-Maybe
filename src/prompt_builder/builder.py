@@ -22,6 +22,11 @@ def build_prompt(prompt: str, functions: list[FunctionDefinition]) -> str:
         "definitions. "
         "Extract the values required by that function from the user's "
         "request. "
+        "Copy explicitly provided parameter values exactly as they appear in "
+        "the request. "
+        "When a value is explicitly enclosed in single or double quotes in "
+        "the user request, treat the complete quoted text as that parameter "
+        "value and stop the value at the closing quote"
         "For replacement parameters, use the exact symbol or text requested "
         "by the user; descriptive words such as 'asterisks' refer to the "
         "symbol '*'. "
@@ -34,8 +39,6 @@ def build_prompt(prompt: str, functions: list[FunctionDefinition]) -> str:
         "function. "
         "Do not use any other field names. Do not use 'fn_params'. "
         "Do not add explanations or Markdown."
-        "For replacement parameters, use the actual replacement"
-        "symbol when the user refers to a symbol by its name."
     )
 
     # Formateamos funciones

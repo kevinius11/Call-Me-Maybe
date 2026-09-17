@@ -178,6 +178,22 @@ class Generator:
 
         return constrained_logits
 
+    def _has_repetition(self, text: str) -> bool:
+        """
+        Detecta posibles repeticiones de una string al final
+        de un texto.
+        Args:
+            text: La palabra a la que miraremos si se lleva a
+            cabo esta repeticion
+        Returns:
+            True: Hay repeticion.
+            False: No hay repeticion.
+        """
+        for size in range(4, len(text) // 2 + 1):
+            if text[-size:] == text[-2 * size:-size]:
+                return True
+        return False
+
     def generate(
         self,
         prompt: str,
@@ -198,6 +214,10 @@ class Generator:
             prompt,
             self._functions,
         )
+
+        print("\n==== SEMANTIC PROMPT ====")
+        print(semantic_prompt)
+        print("===========================\n")
 
         input_ids = self._llm.encode(
             semantic_prompt
@@ -254,6 +274,29 @@ class Generator:
             token_string = self._vocabulary.get_token(
                 next_token_id
             )
+
+            if (
+                state.current_parameter == "query"
+                and len(state.prefix) > 20
+            ):
+                quote_id = self._vocabulary.get_token_id('"')
+                quote_logit = constrained_logits[quote_id]
+
+                top_ids = np.argsort(constrained_logits)[-5:][::-1]
+
+                print(
+                    f"\n[DEBUG QUERY]"
+                    f"\nprefix={state.prefix!r}"
+                    f"\nlength={len(state.prefix)}"
+                    f"\nrepetition={self._has_repetition(state.prefix)}"
+                    f"\nquote logit={quote_logit}"
+                )
+
+                for token_id in top_ids:
+                    print(
+                        f"      {self._vocabulary.get_token(token_id)!r}: "
+                        f"{constrained_logits[token_id]}"
+                    )
 
             input_ids.append(
                 next_token_id
