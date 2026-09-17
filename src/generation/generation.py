@@ -16,6 +16,7 @@ class Generator:
 
     STRING_CLOSE_BONUS = 1.0
     REGEX_CLOSE_BONUS = 1.5
+    REPETITION_CLOSE_MARGIN = 1.0
 
     def __init__(self,
                  llm: LLM,
@@ -176,9 +177,32 @@ class Generator:
             if np.isfinite(constrained_logits[quote_id]):
                 constrained_logits[quote_id] += bonus
 
+            repetition_size = self._get_repetition_size(
+                state.prefix
+            )
+
+            if (
+                repetition_size > 0
+                and np.isfinite(constrained_logits[quote_id])
+            ):
+                other_logits = constrained_logits.copy()
+                other_logits[quote_id] = -np.inf
+
+                max_other = np.max(other_logits)
+
+                if np.isfinite(max_other):
+                    required_bonus = (
+                        max_other
+                        + self.REPETITION_CLOSE_MARGIN
+                        - constrained_logits[quote_id]
+                    )
+
+                    if required_bonus > 0:
+                        constrained_logits[quote_id] += required_bonus
+
         return constrained_logits
 
-    def _has_repetition(self, text: str) -> bool:
+    def _get_repetition_size(self, text: str) -> int:
         """
         Detecta posibles repeticiones de una string al final
         de un texto.
@@ -186,13 +210,21 @@ class Generator:
             text: La palabra a la que miraremos si se lleva a
             cabo esta repeticion
         Returns:
-            True: Hay repeticion.
-            False: No hay repeticion.
+            Tamaño del bloque repetido.
+            0 si no existe una repetición.
         """
-        for size in range(4, len(text) // 2 + 1):
-            if text[-size:] == text[-2 * size:-size]:
-                return True
-        return False
+        for size in range(4, len(text) // 3 + 1):
+            current = text[-size:]
+            previous = text[-2 * size:-size]
+            before_previous = text[-3 * size:-2 * size]
+
+            if (
+                current == previous
+                and previous == before_previous
+            ):
+                return size
+            
+        return 0
 
     def generate(
         self,
@@ -284,11 +316,15 @@ class Generator:
 
                 top_ids = np.argsort(constrained_logits)[-5:][::-1]
 
+                repetition_size = self._get_repetition_size(
+                    state.prefix
+                )
+
                 print(
                     f"\n[DEBUG QUERY]"
                     f"\nprefix={state.prefix!r}"
                     f"\nlength={len(state.prefix)}"
-                    f"\nrepetition={self._has_repetition(state.prefix)}"
+                    f"\nrepetition_size={repetition_size}"
                     f"\nquote logit={quote_logit}"
                 )
 
