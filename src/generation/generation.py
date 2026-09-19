@@ -223,7 +223,7 @@ class Generator:
                 and previous == before_previous
             ):
                 return size
-            
+
         return 0
 
     def generate(
@@ -308,8 +308,10 @@ class Generator:
             )
 
             if (
-                state.current_parameter == "query"
-                and len(state.prefix) > 20
+                state.phase == DecodingState.EXPECT_ARGS_VALUE
+                and state.current_parameter is not None
+                and self._decoder.get_current_parameter_type(state) == "string"
+                and len(state.prefix) > 10
             ):
                 quote_id = self._vocabulary.get_token_id('"')
                 quote_logit = constrained_logits[quote_id]
@@ -321,7 +323,8 @@ class Generator:
                 )
 
                 print(
-                    f"\n[DEBUG QUERY]"
+                    f"\n[DEBUG STRING]"
+                    f"\nparameter={state.current_parameter!r}"
                     f"\nprefix={state.prefix!r}"
                     f"\nlength={len(state.prefix)}"
                     f"\nrepetition_size={repetition_size}"

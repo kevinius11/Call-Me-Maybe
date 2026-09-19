@@ -36,4 +36,4 @@ class FunctionCallResult(BaseModel):
     """
     prompt: str
     fn_name: str
-    args: dict[str, float | str | bool]
+    args: dict[str, int | float | str | bool]

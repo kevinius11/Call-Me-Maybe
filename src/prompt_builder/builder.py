@@ -17,28 +17,41 @@ def build_prompt(prompt: str, functions: list[FunctionDefinition]) -> str:
     # Instruccion general al LLM
 
     instruction = (
-        "You are an expert API router. Analyze the user's request and select "
-        "the most appropriate function from the available function "
+        "You are an API router. "
+        "Select exactly one function that matches the user request and extract "
+        "the required arguments. "
+
+        "Use only information that comes from USER REQUEST. "
+        "Never copy argument values from these instructions or from the function "
         "definitions. "
-        "Extract the values required by that function from the user's "
-        "request. "
-        "Copy explicitly provided parameter values exactly as they appear in "
-        "the request. "
-        "When a value is explicitly enclosed in single or double quotes in "
-        "the user request, treat the complete quoted text as that parameter "
-        "value and stop the value at the closing quote"
-        "For replacement parameters, use the exact symbol or text requested "
-        "by the user; descriptive words such as 'asterisks' refer to the "
-        "symbol '*'. "
-        "For regex parameters, match the target text itself without adding "
-        "surrounding text or combining separate occurrences. "
-        "Return the result using exactly this JSON structure: "
-        '{"fn_name": "<function_name>", "args": {<parameter_name>: <value>}}. '
-        "The function name must match one of the available functions. "
-        "The args object must contain the parameters required by that "
-        "function. "
-        "Do not use any other field names. Do not use 'fn_params'. "
-        "Do not add explanations or Markdown."
+        "Do not invent, complete, paraphrase, summarize, translate, normalize, "
+        "or extend argument values. "
+
+        "For string arguments, preserve the exact user-provided text. "
+        "Preserve spaces, punctuation, braces, quotation marks, apostrophes, "
+        "slashes, backslashes, and other special characters. "
+
+        "If the user explicitly gives a quoted value, use the text inside the "
+        "outer quotation marks as the value. "
+        "Quotation marks that belong to the value must be preserved. "
+
+        "For template arguments, copy the complete template text exactly as "
+        "provided by the user. Never add placeholders, examples, explanations, "
+        "or additional sentences. "
+
+        "For file paths, preserve every character exactly, including leading "
+        "slashes and Windows backslashes. "
+
+        "For SQL arguments, copy the complete query exactly as provided. "
+        "Never append or continue the query. "
+
+        "For replacement arguments, use the exact replacement requested. "
+        "The word 'asterisks' means the symbol '*'. "
+
+        "For regex arguments, match the requested target text directly. "
+
+        "Return only a JSON object containing the selected function name and "
+        "its required arguments. Do not return explanations or Markdown."
     )
 
     # Formateamos funciones
@@ -51,4 +64,8 @@ def build_prompt(prompt: str, functions: list[FunctionDefinition]) -> str:
     # Request del usuario
     user_request = f"User request: {prompt}"
 
-    return "\n\n".join([instruction, functions_text, user_request])
+    return "\n\n".join([
+        instruction,
+        functions_text,
+        user_request
+        ])

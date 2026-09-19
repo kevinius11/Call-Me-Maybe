@@ -115,6 +115,7 @@ def process_prompts(
 
     for prompt in prompts:
         generated = generator.generate(prompt)
+        print(f"\n[DEBUG GENERATED]\n{generated}")
 
         try:
             data = json.loads(generated)
@@ -126,10 +127,20 @@ def process_prompts(
 
         validator.validate(data)
 
+        print(
+            f"[DEBUG ARGS] {data['args']!r} "
+            f"{[(key, type(value).__name__) for key, value in data['args'].items()]}"
+        )
+
         result = FunctionCallResult(
             prompt=prompt,
             fn_name=data["fn_name"],
             args=data["args"],
+        )
+
+        print(
+            f"[DEBUG MODEL] {result.args!r} "
+            f"{[(key, type(value).__name__) for key, value in result.args.items()]}"
         )
 
         results.append(result)

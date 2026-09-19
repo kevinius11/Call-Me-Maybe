@@ -3,16 +3,16 @@
     "prompt": "What is the sum of 2 and 3?",
     "fn_name": "fn_add_numbers",
     "args": {
-      "a": 2.0,
-      "b": 3.0
+      "a": 2,
+      "b": 3
     }
   },
   {
     "prompt": "What is the sum of 265 and 345?",
     "fn_name": "fn_add_numbers",
     "args": {
-      "a": 265.0,
-      "b": 345.0
+      "a": 265,
+      "b": 345
     }
   },
   {
@@ -47,14 +47,14 @@
     "prompt": "What is the square root of 16?",
     "fn_name": "fn_get_square_root",
     "args": {
-      "a": 16.0
+      "a": 16
     }
   },
   {
     "prompt": "Calculate the square root of 144",
     "fn_name": "fn_get_square_root",
     "args": {
-      "a": 144.0
+      "a": 144
     }
   },
   {
