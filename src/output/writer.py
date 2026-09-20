@@ -34,8 +34,16 @@ def save_results(
             "w",
             encoding="utf-8",
         ) as file:
+            payload = [
+                {
+                    "prompt": result.prompt,
+                    "fn_name": result.fn_name,
+                    "args": result.args,
+                }
+                for result in results
+            ]
             json.dump(
-                [result.model_dump() for result in results],
+                payload,
                 file,
                 indent=2,
                 ensure_ascii=False,

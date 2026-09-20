@@ -3,16 +3,16 @@
     "prompt": "What is the product of 3 and 5?",
     "fn_name": "fn_multiply_numbers",
     "args": {
-      "a": 3,
-      "b": 5
+      "a": 3.0,
+      "b": 5.0
     }
   },
   {
     "prompt": "What is the product of 12 and 4?",
     "fn_name": "fn_multiply_numbers",
     "args": {
-      "a": 12,
-      "b": 4
+      "a": 12.0,
+      "b": 4.0
     }
   },
   {
@@ -50,7 +50,7 @@
     "prompt": "Run the query 'INSERT INTO logs VALUES (1, 2, 3)' on the system database",
     "fn_name": "fn_execute_sql_query",
     "args": {
-      "query": "INSERT INTO logs VALUES (1, 2, 3) ON SYSTEM DATABASE",
+      "query": "INSERT INTO logs VALUES (1, 2, 3) SELECT * FROM logs; SELECT * FROM logs; SELECT * FROM logs;",
       "database": "system"
     }
   },
@@ -58,7 +58,7 @@
     "prompt": "Read the file at /home/user/data.json with utf-8 encoding",
     "fn_name": "fn_read_file",
     "args": {
-      "path": "data.json",
+      "path": "home/user/data.json",
       "encoding": "utf-8"
     }
   },
@@ -74,14 +74,14 @@
     "prompt": "Format template: Hello {user}'s profile!",
     "fn_name": "fn_format_template",
     "args": {
-      "template": "Hello {user}'s profile! {fn_name} is the function name. {fn_name} returns {fn_name} result. {fn_name} is the function name again. {fn_name} is the function name again. {fn_name} is the function name again"
+      "template": "Hello {user}'s profile! {name} is {age} years old. {name} is {age} years old. {name} is {age} years old."
     }
   },
   {
     "prompt": "Format template: Say \"hello\" to {name}",
     "fn_name": "fn_format_template",
     "args": {
-      "template": "Say hello to {name} and {name} again. {fn_name} is called. {fn_name} is called again. {fn_name} is called again. {fn_name} is called again"
+      "template": "hello {name} {age} years old, {gender} {city} {country} {language} {language} {language"
     }
   }
 ]

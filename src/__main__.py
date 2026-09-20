@@ -92,10 +92,32 @@ def build_generator(
     )
 
 
+def normalize_arguments(
+    args: dict[str, int | float | str | bool],
+    function: FunctionDefinition,
+) -> dict[str, int | float | str | bool]:
+    """Normaliza los argumentos según los tipos definidos."""
+
+    normalized: dict[str, int | float | str | bool] = {}
+
+    for parameter_name, value in args.items():
+        parameter_type = function.parameters[parameter_name].type
+
+        if parameter_type == "number":
+            normalized[parameter_name] = float(value)
+        elif parameter_type == "integer":
+            normalized[parameter_name] = int(value)
+        else:
+            normalized[parameter_name] = value
+
+    return normalized
+
+
 def process_prompts(
     prompts: list[str],
     generator: Generator,
     validator: SemanticValidator,
+    functions: list[FunctionDefinition]
 ) -> list[FunctionCallResult]:
     """
     Genera y valida una llamada de función para cada prompt.
@@ -104,6 +126,7 @@ def process_prompts(
         prompts: Lista de solicitudes en lenguaje natural.
         generator: Generador de llamadas restringidas.
         validator: Validador semántico de las llamadas.
+        functions: Definiciones disponibles de las funciones.
 
     Returns:
         Lista de resultados de llamadas validadas.
@@ -112,6 +135,11 @@ def process_prompts(
         ValueError: Si la salida generada no contiene un JSON válido.
     """
     results: list[FunctionCallResult] = []
+
+    functions_by_name = {
+        function.name: function
+        for function in functions
+    }
 
     for prompt in prompts:
         generated = generator.generate(prompt)
@@ -127,6 +155,13 @@ def process_prompts(
 
         validator.validate(data)
 
+        function = functions_by_name[data["fn_name"]]
+
+        normalized_args = normalize_arguments(
+            data["args"],
+            function,
+        )
+
         print(
             f"[DEBUG ARGS] {data['args']!r} "
             f"{[(key, type(value).__name__) for key, value in data['args'].items()]}"
@@ -135,7 +170,7 @@ def process_prompts(
         result = FunctionCallResult(
             prompt=prompt,
             fn_name=data["fn_name"],
-            args=data["args"],
+            args=normalized_args,
         )
 
         print(
@@ -166,6 +201,7 @@ def main() -> None:
             prompts,
             generator,
             validator,
+            functions,
         )
 
         save_results(
