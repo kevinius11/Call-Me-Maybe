@@ -58,7 +58,7 @@
     "prompt": "Read the file at /home/user/data.json with utf-8 encoding",
     "fn_name": "fn_read_file",
     "args": {
-      "path": "home/user/data.json",
+      "path": "/home/user/data.json",
       "encoding": "utf-8"
     }
   },

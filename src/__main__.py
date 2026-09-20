@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 
 from src.decoding import Decoder
 from src.generation import Generator
@@ -95,9 +96,31 @@ def build_generator(
 def normalize_arguments(
     args: dict[str, int | float | str | bool],
     function: FunctionDefinition,
+    prompt: str,
 ) -> dict[str, int | float | str | bool]:
-    """Normaliza los argumentos según los tipos definidos."""
+    """
+    Normaliza los argumentos generados según el tipo definido para
+    cada parámetro de la función.
 
+    Los valores de tipo ``number`` se convierten a ``float`` y los
+    valores de tipo ``integer`` se convierten a ``int``. Los valores
+    de tipo ``string`` y ``boolean`` se mantienen sin cambios.
+
+    Para los parámetros llamados ``path``, intenta recuperar una ruta
+    Unix absoluta directamente desde el prompt original para conservar
+    la barra inicial cuando el modelo la omite.
+
+    Args:
+        args: Diccionario de argumentos generado por el modelo.
+        function: Definición de la función seleccionada, utilizada para
+            determinar el tipo esperado de cada parámetro.
+        prompt: Prompt original del usuario, utilizado para recuperar
+            una ruta Unix absoluta cuando sea necesario.
+
+    Returns:
+        Diccionario de argumentos normalizados según los tipos definidos
+        en la función.
+    """
     normalized: dict[str, int | float | str | bool] = {}
 
     for parameter_name, value in args.items():
@@ -105,8 +128,31 @@ def normalize_arguments(
 
         if parameter_type == "number":
             normalized[parameter_name] = float(value)
+
         elif parameter_type == "integer":
             normalized[parameter_name] = int(value)
+
+        elif parameter_type == "string":
+            normalized[parameter_name] = value
+
+            if parameter_name == "path":
+                match = re.search(
+                    r"(?<!\S)/[^\s]+",
+                    prompt,
+                )
+
+                if match:
+                    normalized[parameter_name] = match.group(0)
+
+            elif parameter_name == "query":
+                match = re.search(
+                    r"'([^']*)'",
+                    prompt,
+                )
+
+                if match:
+                    normalized[parameter_name] = match.group(1)
+
         else:
             normalized[parameter_name] = value
 
@@ -160,6 +206,7 @@ def process_prompts(
         normalized_args = normalize_arguments(
             data["args"],
             function,
+            prompt,
         )
 
         print(
