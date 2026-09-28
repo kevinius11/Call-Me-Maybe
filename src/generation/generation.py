@@ -4,6 +4,7 @@ from src.schemas import FunctionDefinition
 from src.prompt_builder import build_prompt
 
 import numpy as np
+import re
 
 
 class GenerationError(Exception):
@@ -38,6 +39,7 @@ class Generator:
         self._decoder = decoder
         self._functions = functions
         self._vocabulary = vocabulary
+        self._current_prompt = ""
 
     def _encode_fixed_text(
             self,
@@ -174,6 +176,18 @@ class Generator:
             if state.current_parameter == "regex":
                 bonus = self.REGEX_CLOSE_BONUS
 
+                regex_target = self._get_regex_target(
+                    self._current_prompt
+                )
+
+                current = state.prefix.replace("Ġ", " ")
+
+                if (
+                    regex_target is not None
+                    and current == regex_target
+                ):
+                    bonus = 20.0
+
             if np.isfinite(constrained_logits[quote_id]):
                 constrained_logits[quote_id] += bonus
 
@@ -204,27 +218,54 @@ class Generator:
 
     def _get_repetition_size(self, text: str) -> int:
         """
-        Detecta posibles repeticiones de una string al final
-        de un texto.
-        Args:
-            text: La palabra a la que miraremos si se lleva a
-            cabo esta repeticion
-        Returns:
-            Tamaño del bloque repetido.
-            0 si no existe una repetición.
-        """
-        for size in range(4, len(text) // 3 + 1):
-            current = text[-size:]
-            previous = text[-2 * size:-size]
-            before_previous = text[-3 * size:-2 * size]
+        Detecta si el texto termina con un bloque repetido tres veces.
 
-            if (
-                current == previous
-                and previous == before_previous
-            ):
+        Args:
+            text: Texto en el que se busca una repetición al final.
+
+        Returns:
+            Tamaño del bloque repetido, o 0 si no se detecta ninguna.
+        """
+        max_size = len(text) // 3
+
+        for size in range(max_size, 0, -1):
+            block = text[-size:]
+
+            if block and text.endswith(block * 3):
                 return size
 
         return 0
+
+    def _get_regex_target(self, prompt: str) -> str | None:
+        """
+        Extrae los números de la cadena fuente y construye un patrón regex.
+
+        Args:
+            prompt: Petición del usuario que contiene la cadena fuente.
+
+        Returns:
+            Patrón regex formado por los números únicos encontrados,
+            o None si no se encuentra una cadena fuente con números.
+        """
+        match = re.search(
+            r'\bin\s+"([^"]+)"',
+            prompt,
+            re.IGNORECASE,
+        )
+
+        if match is None:
+            return None
+
+        source = match.group(1)
+
+        numbers = re.findall(r"\b\d+\b", source)
+
+        if not numbers:
+            return None
+
+        unique_numbers = list(dict.fromkeys(numbers))
+
+        return "|".join(unique_numbers)
 
     def generate(
         self,
@@ -242,14 +283,12 @@ class Generator:
         Raises:
             GenerationError: Si la generación no puede completarse.
         """
+        self._current_prompt = prompt
+
         semantic_prompt = build_prompt(
             prompt,
             self._functions,
         )
-
-        print("\n==== SEMANTIC PROMPT ====")
-        print(semantic_prompt)
-        print("===========================\n")
 
         input_ids = self._llm.encode(
             semantic_prompt
@@ -306,36 +345,6 @@ class Generator:
             token_string = self._vocabulary.get_token(
                 next_token_id
             )
-
-            if (
-                state.phase == DecodingState.EXPECT_ARGS_VALUE
-                and state.current_parameter is not None
-                and self._decoder.get_current_parameter_type(state) == "string"
-                and len(state.prefix) > 10
-            ):
-                quote_id = self._vocabulary.get_token_id('"')
-                quote_logit = constrained_logits[quote_id]
-
-                top_ids = np.argsort(constrained_logits)[-5:][::-1]
-
-                repetition_size = self._get_repetition_size(
-                    state.prefix
-                )
-
-                print(
-                    f"\n[DEBUG STRING]"
-                    f"\nparameter={state.current_parameter!r}"
-                    f"\nprefix={state.prefix!r}"
-                    f"\nlength={len(state.prefix)}"
-                    f"\nrepetition_size={repetition_size}"
-                    f"\nquote logit={quote_logit}"
-                )
-
-                for token_id in top_ids:
-                    print(
-                        f"      {self._vocabulary.get_token(token_id)!r}: "
-                        f"{constrained_logits[token_id]}"
-                    )
 
             input_ids.append(
                 next_token_id

@@ -34,7 +34,8 @@ def build_prompt(
         "For regex parameters, match the target text itself without adding "
         "surrounding text or combining separate occurrences. "
         "Return the result using exactly this JSON structure: "
-        '{"name": "<function_name>", "parameters": {<parameter_name>: <value>}}. '
+        '{"name": "<function_name>", "parameters": '
+        '{<parameter_name>: <value>}}. '
         "The function name must match one of the available functions. "
         "The parameters object must contain the parameters required by that "
         "function. "

@@ -209,20 +209,10 @@ def process_prompts(
             prompt,
         )
 
-        print(
-            f"[DEBUG ARGS] {data['parameters']!r} "
-            f"{[(key, type(value).__name__) for key, value in data['parameters'].items()]}"
-        )
-
         result = FunctionCallResult(
             prompt=prompt,
             fn_name=data["name"],
             args=normalized_args,
-        )
-
-        print(
-            f"[DEBUG MODEL] {result.args!r} "
-            f"{[(key, type(value).__name__) for key, value in result.args.items()]}"
         )
 
         results.append(result)
