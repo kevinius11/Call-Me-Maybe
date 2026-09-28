@@ -37,8 +37,8 @@ def save_results(
             payload = [
                 {
                     "prompt": result.prompt,
-                    "fn_name": result.fn_name,
-                    "args": result.args,
+                    "name": result.fn_name,
+                    "parameters": result.args,
                 }
                 for result in results
             ]

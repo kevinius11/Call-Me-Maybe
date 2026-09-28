@@ -39,14 +39,14 @@ class SemanticValidator:
                 "La llamada generada debe ser un objeto JSON."
             )
 
-        if set(data.keys()) != {"fn_name", "args"}:
+        if set(data.keys()) != {"name", "parameters"}:
             raise ValidationError(
                 "La llamada debe contener exactamente "
-                "'fn_name' y 'args'."
+                "'name' y 'parameters'."
             )
 
-        fn_name = data.get("fn_name")
-        args = data.get("args")
+        fn_name = data.get("name")
+        args = data.get("parameters")
 
         if not isinstance(fn_name, str):
             raise ValidationError(

@@ -201,22 +201,22 @@ def process_prompts(
 
         validator.validate(data)
 
-        function = functions_by_name[data["fn_name"]]
+        function = functions_by_name[data["name"]]
 
         normalized_args = normalize_arguments(
-            data["args"],
+            data["parameters"],
             function,
             prompt,
         )
 
         print(
-            f"[DEBUG ARGS] {data['args']!r} "
-            f"{[(key, type(value).__name__) for key, value in data['args'].items()]}"
+            f"[DEBUG ARGS] {data['parameters']!r} "
+            f"{[(key, type(value).__name__) for key, value in data['parameters'].items()]}"
         )
 
         result = FunctionCallResult(
             prompt=prompt,
-            fn_name=data["fn_name"],
+            fn_name=data["name"],
             args=normalized_args,
         )
 

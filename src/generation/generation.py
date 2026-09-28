@@ -82,7 +82,7 @@ class Generator:
             and state.phase == DecodingState.EXPECT_ARGS_KEY
         ):
             input_ids.extend(
-                self._encode_fixed_text(', "args": {"')
+                self._encode_fixed_text(', "parameters": {"')
             )
             return
 
@@ -257,7 +257,7 @@ class Generator:
 
         json_start = len(input_ids)
 
-        fixed_prefix = '{"fn_name": "'
+        fixed_prefix = '{"name": "'
 
         input_ids.extend(
             self._encode_fixed_text(
