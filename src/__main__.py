@@ -189,7 +189,6 @@ def process_prompts(
 
     for prompt in prompts:
         generated = generator.generate(prompt)
-        print(f"\n[DEBUG GENERATED]\n{generated}")
 
         try:
             data = json.loads(generated)

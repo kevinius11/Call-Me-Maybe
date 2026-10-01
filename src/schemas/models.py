@@ -35,5 +35,5 @@ class FunctionCallResult(BaseModel):
         args: Los argumentos pasados como parametros de la funcion.
     """
     prompt: str
-    name: str
-    parameters: dict[str, int | float | str | bool]
+    fn_name: str
+    args: dict[str, int | float | str | bool]
